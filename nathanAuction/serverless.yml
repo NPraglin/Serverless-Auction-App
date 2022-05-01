@@ -7,8 +7,18 @@ provider:
   runtime: nodejs14.x
   stage: dev
   region: us-west-1
-
+  iam:
+    role:
+      statements:
+        - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
 functions:
-  hello:
-    handler: handler.hello
+  createAuction:
+    handler: createAuction.handler
+    events:
+      - http:
+          method: POST
+          path: /auction
 
+resources:
+  Resources:
+    AuctionsTable: ${file(resources/AuctionsTable.yml):AuctionsTable}
