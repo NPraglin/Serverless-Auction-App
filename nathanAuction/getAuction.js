@@ -8,35 +8,35 @@ import createError from 'http-errors';
 
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 
-const createAuction = async (event, context) => {
-  const { title } = event.body;
-  const now = new Date();
+const getAuction = async (event, context) => {
+  let auction;
 
-  const auction = {
-    id: uuid(),
-    title,
-    status: 'OPEN',
-    createdAt: now.toISOString(),
-  };
+  // get query params that are defined in yml route
+  const { id } = event.pathParameters;
 
   try {
-    await dynamodb.put({
-    TableName: process.env.AUCTIONS_TABLE_NAME,
-    Item: auction,
+    // dynamo syntax to GET the data by QUERY
+    const result = await dynamodb.get({ TableName: process.env.AUCTIONS_TABLE_NAME,
+    Key: { id } 
   }).promise();
+    // assign to the let variable
+    auction = result.Item; // single item
   } catch (err) {
-    console.log('error putting to dynamo table', err)
+    console.log('error getting by id', err);
     throw new createError.InternalServerError(err);
   }
-  
+
+  if (!auction) {
+    throw new createError.NotFound(`Auction with ${id} not found.`)
+  }
 
   return {
-    statusCode: 201, // resource created
+    statusCode: 200, // resource created
     body: JSON.stringify(auction),
   };
 };
 
-export const handler = middy(createAuction)
+export const handler = middy(getAuction)
   .use(httpJsonBodyParser())
   .use(httpEventNormalizer())
   .use(httpErrorHandler())
